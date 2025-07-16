@@ -17,6 +17,7 @@
 use chrono::prelude::Local;
 use log::*;
 use std::io::{self, Write};
+use flexi_logger::{Age, Cleanup, Criterion, FileSpec, Logger, Naming};
 
 static LOGGER: SimpleLogger = SimpleLogger;
 const THRESHOLD: LevelFilter = LevelFilter::Info;
@@ -53,7 +54,26 @@ impl Log for SimpleLogger {
     }
 }
 
-pub fn init() -> Result<(), SetLoggerError> {
+pub fn init() -> Result<(), Box<dyn std::error::Error>> {
     set_max_level(THRESHOLD);
-    set_logger(&LOGGER)
+    if cfg!(debug_assertions) {
+        set_logger(&LOGGER)?;
+        Ok(())
+    }
+    else {
+        Logger::try_with_str("info")?
+            .log_to_file(
+                FileSpec::default()
+                    .basename("gnirehtet-relay")
+                    .suffix("log"),
+            )
+            .rotate(
+                Criterion::Age(Age::Day),
+                Naming::Timestamps,
+                Cleanup::KeepLogFiles(7),
+            )
+            .print_message()
+            .start()?;
+        Ok(())
+    }
 }
