@@ -139,7 +139,7 @@ impl TcpConnection {
         ipv4_header: Ipv4Header,
         transport_header: TransportHeader,
     ) -> io::Result<Rc<RefCell<Self>>> {
-        cx_info!(target: TAG, id, "Open");
+        //cx_info!(target: TAG, id, "Open");
         let stream = Self::create_stream(&id)?;
 
         let tcp_header = Self::tcp_header_of_transport(transport_header);
@@ -788,7 +788,7 @@ impl Connection for TcpConnection {
     }
 
     fn close(&mut self, selector: &mut Selector) {
-        cx_info!(target: TAG, self.id, "Close");
+        //cx_info!(target: TAG, self.id, "Close");
         self.closed = true;
         if let Err(err) = selector.deregister(&self.stream, self.token) {
             // do not panic, this can happen in mio

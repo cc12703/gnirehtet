@@ -15,6 +15,7 @@
  */
 
 use byteorder::{BigEndian, ByteOrder};
+use log::info;
 use std::mem;
 
 pub struct Ipv4Header<'a> {
@@ -41,6 +42,7 @@ pub struct Ipv4HeaderData {
 pub enum Protocol {
     Tcp,
     Udp,
+    Icmp,
     Other,
 }
 
@@ -54,6 +56,7 @@ impl Ipv4HeaderData {
             protocol: match raw[9] {
                 6 => Protocol::Tcp,
                 17 => Protocol::Udp,
+                1 => Protocol::Icmp,
                 _ => Protocol::Other,
             },
             source: BigEndian::read_u32(&raw[12..16]),

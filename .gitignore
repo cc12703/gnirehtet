@@ -3,3 +3,5 @@ build/
 .idea/
 *.iml
 /local.properties
+*.code-workspace
+/relay-java/bin

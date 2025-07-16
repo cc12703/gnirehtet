@@ -52,9 +52,11 @@ impl Packetizer {
 
         {
             let transport_header_raw = &mut buffer[transport_index..payload_index];
-            transport_header_raw.copy_from_slice(reference_transport_header.raw());
-            let mut transport_header = transport_header_data.bind_mut(transport_header_raw);
-            transport_header.swap_source_and_destination();
+            if transport_header_raw.len() > 0 {
+                transport_header_raw.copy_from_slice(reference_transport_header.raw());
+                let mut transport_header = transport_header_data.bind_mut(transport_header_raw);
+                transport_header.swap_source_and_destination();
+            }
         }
 
         Self {

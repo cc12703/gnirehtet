@@ -58,7 +58,7 @@ impl UdpConnection {
         ipv4_header: Ipv4Header,
         transport_header: TransportHeader,
     ) -> io::Result<Rc<RefCell<Self>>> {
-        cx_info!(target: TAG, id, "Open");
+        //cx_info!(target: TAG, id, "Open");
         let socket = Self::create_socket(&id)?;
         let packetizer = Packetizer::new(&ipv4_header, &transport_header);
         let interests = Ready::readable();
@@ -269,7 +269,7 @@ impl Connection for UdpConnection {
     }
 
     fn close(&mut self, selector: &mut Selector) {
-        cx_info!(target: TAG, self.id, "Close");
+        //cx_info!(target: TAG, self.id, "Close");
         self.closed = true;
         if let Err(err) = selector.deregister(&self.socket, self.token) {
             // do not panic, this can happen in mio

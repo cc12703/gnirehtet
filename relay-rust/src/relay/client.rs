@@ -17,20 +17,31 @@
 use log::*;
 use mio::net::TcpStream;
 use mio::{Event, PollOpt, Ready, Token};
+use pnet::packet::icmp::echo_request::EchoRequestPacket;
+use pnet::packet::icmp::echo_reply::MutableEchoReplyPacket;
 use std::cell::RefCell;
 use std::io::{self, Write};
-use std::mem;
+use std::{mem, vec};
 use std::net::Shutdown;
 use std::rc::Rc;
 
+use pnet::packet::{ util, Packet };
+use pnet::packet::icmp::{IcmpCode, IcmpTypes};
+
+use crate::relay::packetizer::Packetizer;
+
 use super::binary;
 use super::close_listener::CloseListener;
+use super::ipv4_header::Protocol;
 use super::ipv4_packet::{Ipv4Packet, MAX_PACKET_LENGTH};
 use super::ipv4_packet_buffer::Ipv4PacketBuffer;
 use super::packet_source::PacketSource;
 use super::router::Router;
 use super::selector::Selector;
 use super::stream_buffer::StreamBuffer;
+use super::transport_header::TransportHeaderData;
+
+
 
 const TAG: &str = "Client";
 
@@ -107,6 +118,7 @@ impl<'a> ClientChannel<'a> {
         }
     }
 }
+
 
 impl Client {
     pub fn create(
@@ -302,6 +314,46 @@ impl Client {
         }
     }
 
+    fn process_icmp_packet(selector: &mut Selector, ipv4_packet: &Ipv4Packet,
+                           client_channel: &mut ClientChannel) {
+        let hData = match ipv4_packet.transport_header_data().unwrap() {
+            TransportHeaderData::Icmp(icmp_data) => Some(icmp_data),
+            _ => None,
+            
+        };                    
+        if hData.unwrap().msg_type() == IcmpTypes::EchoRequest.0 {
+            info!(target: TAG, "ICMP echo request received");
+            let payload = &ipv4_packet.raw()[ipv4_packet.ipv4_header_data().header_length() as usize..];
+            let req_data = EchoRequestPacket::new(payload).unwrap();
+
+            info!(target: TAG, "ICMP echo request data: {:?}", req_data);
+            info!(target: TAG, "ICMP echo request data payload size: {:?}", payload.len());
+
+            let mut reply_buf = vec![0u8; payload.len()];
+            let mut pkt = MutableEchoReplyPacket::new(&mut reply_buf).unwrap();
+            pkt.set_icmp_type(IcmpTypes::EchoReply);
+            pkt.set_icmp_code(IcmpCode(0));
+            pkt.set_identifier(req_data.get_identifier());
+            pkt.set_sequence_number(req_data.get_sequence_number());
+            pkt.set_payload(req_data.payload());
+            pkt.set_checksum(util::checksum(pkt.packet(), 1));
+            
+
+            info!(target: TAG, "ICMP echo reply data: {:?}", pkt);
+
+            let mut packetizer = Packetizer::new(&ipv4_packet.ipv4_header(), &ipv4_packet.transport_header().unwrap());
+            let mut cursor = io::Cursor::new(reply_buf);
+            let ip_pkt = packetizer.packetize_read(&mut cursor, None).unwrap().unwrap();
+            if let Err(err) = client_channel.send_to_client(selector, &ip_pkt) {
+                error!(target: TAG, "Cannot send ICMP reply to client: {}", err);
+            } else {
+                info!(target: TAG, "ICMP echo reply sent to client");
+            }
+            
+            return;
+        }
+    }
+
     fn push_one_packet_to_network(&mut self, selector: &mut Selector) -> bool {
         match self.client_to_network.as_ipv4_packet() {
             Some(ref packet) => {
@@ -311,6 +363,14 @@ impl Client {
                     self.token,
                     &mut self.interests,
                 );
+                
+                //info!(target: TAG, "Pushing packet to network: protocol = {:?}", packet.ipv4_header_data().protocol());
+                if packet.ipv4_header_data().protocol() == Protocol::Icmp {
+                    info!(target: TAG, "ICMP packet detected");
+                    Self::process_icmp_packet(selector, packet, &mut client_channel);
+                    return true;
+                }
+
                 self.router
                     .send_to_network(selector, &mut client_channel, packet);
                 true
