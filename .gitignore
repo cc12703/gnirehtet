@@ -5,3 +5,4 @@ build/
 /local.properties
 *.code-workspace
 /relay-java/bin
+.DS_Store

@@ -32,6 +32,7 @@ const TAG: &str = "Router";
 
 pub struct Router {
     client: Weak<RefCell<Client>>,
+    client_id: u32,
     // there are typically only few connections per client, HashMap would be less efficient
     connections: Vec<Rc<RefCell<dyn Connection>>>,
 }
@@ -40,13 +41,15 @@ impl Router {
     pub fn new() -> Self {
         Self {
             client: Weak::new(),
+            client_id: 0,
             connections: Vec::new(),
         }
     }
 
     // expose client initialization after construction to break cyclic initialization dependencies
-    pub fn set_client(&mut self, client: Weak<RefCell<Client>>) {
+    pub fn set_client(&mut self, client: Weak<RefCell<Client>>, client_id: u32) {
         self.client = client;
+        self.client_id = client_id;
     }
 
     pub fn send_to_network(
@@ -99,7 +102,7 @@ impl Router {
     ) -> io::Result<usize> {
         let (ipv4_header_data, transport_header_data) = ipv4_packet.headers_data();
         let transport_header_data = transport_header_data.expect("No transport");
-        let id = ConnectionId::from_headers(ipv4_header_data, transport_header_data);
+        let id = ConnectionId::from_headers(self.client_id, ipv4_header_data, transport_header_data);
         let index = match self.find_index(&id) {
             Some(index) => index,
             None => {

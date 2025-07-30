@@ -54,7 +54,7 @@ impl Log for SimpleLogger {
     }
 }
 
-pub fn init() -> Result<(), Box<dyn std::error::Error>> {
+pub fn init(log_path: Option<String>) -> Result<(), Box<dyn std::error::Error>> {
     set_max_level(THRESHOLD);
     if cfg!(debug_assertions) {
         set_logger(&LOGGER)?;
@@ -64,6 +64,7 @@ pub fn init() -> Result<(), Box<dyn std::error::Error>> {
         Logger::try_with_str("info")?
             .log_to_file(
                 FileSpec::default()
+                    .directory(log_path.unwrap_or_else(|| "./logs".into()))
                     .basename("gnirehtet-relay")
                     .suffix("log"),
             )

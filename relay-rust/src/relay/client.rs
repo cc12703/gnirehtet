@@ -146,7 +146,7 @@ impl Client {
         {
             let mut self_ref = rc.borrow_mut();
             // set client as router owner
-            self_ref.router.set_client(Rc::downgrade(&rc));
+            self_ref.router.set_client(Rc::downgrade(&rc), id);
 
             let rc2 = rc.clone();
             // must anotate selector type: https://stackoverflow.com/a/44004103/1987178
@@ -314,7 +314,7 @@ impl Client {
         }
     }
 
-    fn process_icmp_packet(selector: &mut Selector, ipv4_packet: &Ipv4Packet,
+    fn process_icmp_packet(client_id: u32, selector: &mut Selector, ipv4_packet: &Ipv4Packet,
                            client_channel: &mut ClientChannel) {
         let hData = match ipv4_packet.transport_header_data().unwrap() {
             TransportHeaderData::Icmp(icmp_data) => Some(icmp_data),
@@ -322,12 +322,17 @@ impl Client {
             
         };                    
         if hData.unwrap().msg_type() == IcmpTypes::EchoRequest.0 {
-            info!(target: TAG, "ICMP echo request received");
+            info!(target: TAG, "({}): ICMP echo request received", client_id);
             let payload = &ipv4_packet.raw()[ipv4_packet.ipv4_header_data().header_length() as usize..];
             let req_data = EchoRequestPacket::new(payload).unwrap();
 
-            info!(target: TAG, "ICMP echo request data: {:?}", req_data);
-            info!(target: TAG, "ICMP echo request data payload size: {:?}", payload.len());
+            debug!(target: TAG, "({}): ICMP echo request data: {:?}", client_id, req_data);
+            let payload_str = match std::str::from_utf8(req_data.payload()) {
+                Ok(s) => s.to_string(),
+                Err(_) => format!("Non-UTF8 data: {:?}", req_data.payload()),
+            };
+            info!(target: TAG, "({}): ICMP echo request payload: {:?}", client_id, payload_str);
+            info!(target: TAG, "({}): ICMP echo request data payload size: {:?}", client_id, payload.len());
 
             let mut reply_buf = vec![0u8; payload.len()];
             let mut pkt = MutableEchoReplyPacket::new(&mut reply_buf).unwrap();
@@ -339,7 +344,7 @@ impl Client {
             pkt.set_checksum(util::checksum(pkt.packet(), 1));
             
 
-            info!(target: TAG, "ICMP echo reply data: {:?}", pkt);
+            debug!(target: TAG, "ICMP echo reply data: {:?}", pkt);
 
             let mut packetizer = Packetizer::new(&ipv4_packet.ipv4_header(), &ipv4_packet.transport_header().unwrap());
             let mut cursor = io::Cursor::new(reply_buf);
@@ -347,7 +352,7 @@ impl Client {
             if let Err(err) = client_channel.send_to_client(selector, &ip_pkt) {
                 error!(target: TAG, "Cannot send ICMP reply to client: {}", err);
             } else {
-                info!(target: TAG, "ICMP echo reply sent to client");
+                info!(target: TAG, "({}): ICMP echo reply sent to client", client_id);
             }
             
             return;
@@ -366,8 +371,8 @@ impl Client {
                 
                 //info!(target: TAG, "Pushing packet to network: protocol = {:?}", packet.ipv4_header_data().protocol());
                 if packet.ipv4_header_data().protocol() == Protocol::Icmp {
-                    info!(target: TAG, "ICMP packet detected");
-                    Self::process_icmp_packet(selector, packet, &mut client_channel);
+                    info!(target: TAG, "({}): ICMP packet detected", self.id);
+                    Self::process_icmp_packet(self.id, selector, packet, &mut client_channel);
                     return true;
                 }
 

@@ -42,6 +42,7 @@ pub trait Connection {
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct ConnectionId {
+    client_id: u32,
     protocol: Protocol,
     source_ip: u32,
     source_port: u16,
@@ -52,6 +53,7 @@ pub struct ConnectionId {
 
 impl ConnectionId {
     pub fn from_headers(
+        client_id: u32,
         ipv4_header_data: &Ipv4HeaderData,
         transport_header_data: &TransportHeaderData,
     ) -> Self {
@@ -60,11 +62,13 @@ impl ConnectionId {
         let destination_ip = ipv4_header_data.destination();
         let destination_port = transport_header_data.destination_port();
         let id_string = format!(
-            "{} -> {}",
+            "({}) {} -> {}",
+            client_id,
             net::to_socket_addr(source_ip, source_port),
-            net::to_socket_addr(destination_ip, destination_port)
+            net::to_socket_addr(destination_ip, destination_port),
         );
         Self {
+            client_id,
             protocol: ipv4_header_data.protocol(),
             source_ip,
             source_port,

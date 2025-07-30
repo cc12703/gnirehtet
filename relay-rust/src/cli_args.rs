@@ -19,6 +19,7 @@ pub const PARAM_SERIAL: u8 = 1;
 pub const PARAM_DNS_SERVERS: u8 = 1 << 1;
 pub const PARAM_ROUTES: u8 = 1 << 2;
 pub const PARAM_PORT: u8 = 1 << 3;
+pub const PARAM_LOG_PATH: u8 = 1 << 4;
 
 pub const DEFAULT_PORT: u16 = 31416;
 
@@ -27,6 +28,7 @@ pub struct CommandLineArguments {
     dns_servers: Option<String>,
     routes: Option<String>,
     port: u16,
+    log_path: Option<String>,
 }
 
 impl CommandLineArguments {
@@ -36,6 +38,7 @@ impl CommandLineArguments {
         let mut dns_servers = None;
         let mut routes = None;
         let mut port = 0;
+        let mut log_path = None;
 
         let mut iter = args.into_iter();
         while let Some(arg) = iter.next() {
@@ -72,7 +75,17 @@ impl CommandLineArguments {
                 }
             } else if (accepted_parameters & PARAM_SERIAL) != 0 && serial.is_none() {
                 serial = Some(arg);
-            } else {
+            } else if (accepted_parameters & PARAM_LOG_PATH) != 0 && "-l" == arg {
+                if log_path.is_some() {
+                    return Err(String::from("Log path already set"));
+                }
+                if let Some(value) = iter.next() {
+                    log_path = Some(value.into());
+                } else {
+                    return Err(String::from("Missing -l parameter"));
+                }
+            }
+              else {
                 return Err(format!("Unexpected argument: \"{}\"", arg));
             }
         }
@@ -84,6 +97,7 @@ impl CommandLineArguments {
             dns_servers,
             routes,
             port,
+            log_path,
         })
     }
 

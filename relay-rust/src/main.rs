@@ -28,7 +28,7 @@ mod logger;
 use crate::adb_monitor::AdbMonitor;
 use crate::cli_args::CommandLineArguments;
 use crate::execution_error::{Cmd, CommandExecutionError, ProcessIoError, ProcessStatusError};
-use std::env;
+use std::env::{self, Args};
 use std::process::{self, exit};
 use std::thread;
 use std::time::Duration;
@@ -328,7 +328,7 @@ impl Command for RelayCommand {
     }
 
     fn accepted_parameters(&self) -> u8 {
-        cli_args::PARAM_NONE | cli_args::PARAM_PORT
+        cli_args::PARAM_NONE | cli_args::PARAM_PORT | cli_args::PARAM_LOG_PATH
     }
 
     fn description(&self) -> &'static str {
@@ -605,6 +605,9 @@ fn append_command_usage(msg: &mut String, command: &dyn Command) {
     if (accepted_parameters & cli_args::PARAM_ROUTES) != 0 {
         msg.push_str(" [-r ROUTE[,ROUTE2,...]]");
     }
+    if (accepted_parameters & cli_args::PARAM_LOG_PATH) != 0 {
+        msg.push_str(" [-l LOG_PATH]");
+    }
     msg.push('\n');
     for desc_line in command.description().split('\n') {
         msg.push_str("      ");
@@ -619,8 +622,30 @@ fn print_command_usage(command: &dyn Command) {
     eprint!("{}", msg);
 }
 
+fn parse_log_path_from_args() -> Option<String> {
+    let mut args_iter = env::args().peekable();
+    while args_iter.peek().is_some() {
+        if args_iter.peek().is_some() && args_iter.peek().unwrap() == &"-l" {
+            args_iter.next(); // consume "-l"
+            if let Some(log_path) = args_iter.next() {
+                return Some(log_path.into());
+            } else {
+                error!(target: TAG, "Missing log path after -l");
+                return None;
+            }
+        }
+        else {
+            args_iter.next(); // consume the current argument
+        }
+    }
+    return None;
+}
+
 fn main() {
-    logger::init().unwrap();
+    let log_path = parse_log_path_from_args();
+    print!("Initializing logger {:?} /n", log_path);
+    logger::init(log_path).unwrap();
+
     let mut args = env::args();
     // args.nth(1) will consume the two first arguments (the binary name and the command name)
     if let Some(command_name) = args.nth(1) {
