@@ -17,7 +17,7 @@
 use chrono::prelude::Local;
 use log::*;
 use std::io::{self, Write};
-use flexi_logger::{Age, Cleanup, Criterion, FileSpec, Logger, Naming};
+use flexi_logger::{Age, Cleanup, Criterion, DeferredNow, FileSpec, Logger, Naming};
 
 static LOGGER: SimpleLogger = SimpleLogger;
 const THRESHOLD: LevelFilter = LevelFilter::Info;
@@ -73,8 +73,24 @@ pub fn init(log_path: Option<String>) -> Result<(), Box<dyn std::error::Error>> 
                 Naming::Timestamps,
                 Cleanup::KeepLogFiles(7),
             )
-            .print_message()
+            .format_for_files(my_format)
             .start()?;
         Ok(())
     }
+}
+
+
+fn my_format(
+    w: &mut dyn Write,
+    now: &mut DeferredNow,
+    record: &Record,
+) -> Result<(), std::io::Error> {
+    write!(
+        w,
+        "[{}] {} [{}] {}",
+        Local::now().format("%Y-%m-%d %H:%M:%S%.3f"),
+        record.level(),
+        record.target(),
+        record.args()
+    )
 }

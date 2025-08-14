@@ -250,7 +250,7 @@ impl Client {
         match self.read() {
             Ok(true) => self.push_to_network(selector),
             Ok(false) => {
-                debug!(target: TAG, "EOF reached");
+                info!(target: TAG, "EOF reached");
                 self.close(selector);
             }
             Err(err) => {
