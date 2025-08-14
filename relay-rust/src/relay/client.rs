@@ -221,7 +221,7 @@ impl Client {
             match self.send_id() {
                 Ok(_) => {
                     if self.pending_id_bytes == 0 {
-                        debug!(target: TAG, "Client id #{} sent to client", self.id);
+                        info!(target: TAG, "Client id #{} sent to client", self.id);
                     }
                 }
                 Err(err) => {
