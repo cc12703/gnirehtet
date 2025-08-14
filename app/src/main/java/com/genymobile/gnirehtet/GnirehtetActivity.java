@@ -36,7 +36,7 @@ public class GnirehtetActivity extends Activity {
 
     private void handleIntent(Intent intent) {
         String action = intent.getAction();
-        Log.d(TAG, "Received request " + action);
+        Logger.d(TAG, "Received request " + action);
         boolean finish = true;
         if (ACTION_GNIREHTET_START.equals(action)) {
             VpnConfiguration config = createConfig(intent);
@@ -65,13 +65,13 @@ public class GnirehtetActivity extends Activity {
     private boolean startGnirehtet(VpnConfiguration config) {
         Intent vpnIntent = VpnService.prepare(this);
         if (vpnIntent == null) {
-            Log.d(TAG, "VPN was already authorized");
+            Logger.d(TAG, "VPN was already authorized");
             // we got the permission, start the service now
             GnirehtetService.start(this, config);
             return true;
         }
 
-        Log.w(TAG, "VPN requires the authorization from the user, requesting...");
+        Logger.w(TAG, "VPN requires the authorization from the user, requesting...");
         requestAuthorization(vpnIntent, config);
         return false; // do not finish now
     }

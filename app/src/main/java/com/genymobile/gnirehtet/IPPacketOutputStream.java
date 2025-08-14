@@ -57,8 +57,8 @@ public class IPPacketOutputStream extends OutputStream {
         }
         // by design, the buffer must always have enough space for one packet
         if (BuildConfig.DEBUG && len > buffer.remaining()) {
-            Log.e(TAG, len  + " must be <= than " + buffer.remaining());
-            Log.e(TAG, buffer.toString());
+            Logger.e(TAG, len  + " must be <= than " + buffer.remaining());
+            Logger.e(TAG, buffer.toString());
             throw new AssertionError("Buffer is unexpectedly full");
         }
         buffer.put(b, off, len);

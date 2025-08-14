@@ -60,9 +60,9 @@ public class Forwarder {
                 try {
                     forwardDeviceToTunnel(tunnel);
                 } catch (InterruptedIOException e) {
-                    Log.d(TAG, "Device to tunnel interrupted");
+                    Logger.d(TAG, "Device to tunnel interrupted");
                 } catch (IOException e) {
-                    Log.e(TAG, "Device to tunnel exception", e);
+                    Logger.e(TAG, "Device to tunnel exception", e);
                 }
             }
         });
@@ -72,9 +72,9 @@ public class Forwarder {
                 try {
                     forwardTunnelToDevice(tunnel);
                 } catch (InterruptedIOException e) {
-                    Log.d(TAG, "Device to tunnel interrupted");
+                    Logger.d(TAG, "Device to tunnel interrupted");
                 } catch (IOException e) {
-                    Log.e(TAG, "Tunnel to device exception", e);
+                    Logger.e(TAG, "Tunnel to device exception", e);
                 }
             }
         });
@@ -89,14 +89,14 @@ public class Forwarder {
 
     @SuppressWarnings("checkstyle:MagicNumber")
     private void forwardDeviceToTunnel(Tunnel tunnel) throws IOException {
-        Log.d(TAG, "Device to tunnel forwarding started");
+        Logger.d(TAG, "Device to tunnel forwarding started");
         FileInputStream vpnInput = new FileInputStream(vpnFileDescriptor);
         byte[] buffer = new byte[BUFSIZE];
         while (true) {
             // blocking read
             int r = vpnInput.read(buffer);
             if (r == -1) {
-                Log.d(TAG, "VPN closed");
+                Logger.d(TAG, "VPN closed");
                 break;
             }
             if (r > 0) {
@@ -106,17 +106,17 @@ public class Forwarder {
                     tunnel.send(buffer, r);
                 } else {
                     // see <https://github.com/Genymobile/gnirehtet/issues/69>
-                    Log.w(TAG, "Unexpected packet IP version: " + version);
+                    Logger.w(TAG, "Unexpected packet IP version: " + version);
                 }
             } else {
-                Log.d(TAG, "Empty read");
+                Logger.d(TAG, "Empty read");
             }
         }
-        Log.d(TAG, "Device to tunnel forwarding stopped");
+        Logger.d(TAG, "Device to tunnel forwarding stopped");
     }
 
     private void forwardTunnelToDevice(Tunnel tunnel) throws IOException {
-        Log.d(TAG, "Tunnel to device forwarding started");
+        Logger.d(TAG, "Tunnel to device forwarding started");
         FileOutputStream vpnOutput = new FileOutputStream(vpnFileDescriptor);
         IPPacketOutputStream packetOutputStream = new IPPacketOutputStream(vpnOutput);
 
@@ -125,17 +125,17 @@ public class Forwarder {
             // blocking receive
             int w = tunnel.receive(buffer);
             if (w == -1) {
-                Log.d(TAG, "Tunnel closed");
+                Logger.d(TAG, "Tunnel closed");
                 break;
             }
             if (w > 0) {
                 // blocking write
                 packetOutputStream.write(buffer, 0, w);
             } else {
-                Log.d(TAG, "Empty write");
+                Logger.d(TAG, "Empty write");
             }
         }
-        Log.d(TAG, "Tunnel to device forwarding stopped");
+        Logger.d(TAG, "Tunnel to device forwarding stopped");
     }
 
     /**

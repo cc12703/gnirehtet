@@ -58,10 +58,10 @@ public class CIDR implements Parcelable {
             }
             return new CIDR(address, prefix);
         } catch (IllegalArgumentException e) {
-            Log.e("Error", e.getMessage(), e);
+            Logger.e("Error", e.getMessage(), e);
             throw new InvalidCIDRException(cidr, e);
         } catch (Throwable e) {
-            Log.e("Error", e.getMessage(), e);
+            Logger.e("Error", e.getMessage(), e);
             throw e;
         }
     }

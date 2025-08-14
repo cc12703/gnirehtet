@@ -79,12 +79,24 @@ public class GnirehtetService extends VpnService {
     }
 
     @Override
+    public void onCreate() {
+        super.onCreate();
+        Logger.init(this);
+    }
+
+    @Override
+    public void onDestroy() {
+        super.onDestroy();
+        Logger.close();
+    }
+
+    @Override
     public int onStartCommand(Intent intent, int flags, int startId) {
         String action = intent.getAction();
-        Log.d(TAG, "Received request " + action);
+        Logger.d(TAG, "Received request " + action);
         if (ACTION_START_VPN.equals(action)) {
             if (isRunning()) {
-                Log.d(TAG, "VPN already running, ignore START request");
+                Logger.d(TAG, "VPN already running, ignore START request");
             } else {
                 VpnConfiguration config = intent.getParcelableExtra(EXTRA_VPN_CONFIGURATION);
                 if (config == null) {
@@ -142,7 +154,7 @@ public class GnirehtetService extends VpnService {
 
         vpnInterface = builder.establish();
         if (vpnInterface == null) {
-            Log.w(TAG, "VPN starting failed, please retry");
+            Logger.w(TAG, "VPN starting failed, please retry");
             // establish() may return null if the application is not prepared or is revoked
             return false;
         }
@@ -160,7 +172,7 @@ public class GnirehtetService extends VpnService {
                 setUnderlyingNetworks(new Network[] {vpnNetwork});
             }
         } else {
-            Log.w(TAG, "Cannot set underlying network, API version " + Build.VERSION.SDK_INT + " < 22");
+            Logger.w(TAG, "Cannot set underlying network, API version " + Build.VERSION.SDK_INT + " < 22");
         }
     }
 
@@ -198,7 +210,7 @@ public class GnirehtetService extends VpnService {
             vpnInterface.close();
             vpnInterface = null;
         } catch (IOException e) {
-            Log.w(TAG, "Cannot close VPN file descriptor", e);
+            Logger.w(TAG, "Cannot close VPN file descriptor", e);
         }
     }
 
@@ -219,11 +231,11 @@ public class GnirehtetService extends VpnService {
             }
             switch (message.what) {
                 case RelayTunnelListener.MSG_RELAY_TUNNEL_CONNECTED:
-                    Log.d(TAG, "Relay tunnel connected");
+                    //Logger.d(TAG, "Relay tunnel connected");
                     vpnService.notifier.setFailure(false);
                     break;
                 case RelayTunnelListener.MSG_RELAY_TUNNEL_DISCONNECTED:
-                    Log.d(TAG, "Relay tunnel disconnected");
+                    //Logger.d(TAG, "Relay tunnel disconnected");
                     vpnService.notifier.setFailure(true);
                     break;
                 default:

@@ -25,6 +25,8 @@ import java.io.IOException;
  */
 public class RelayTunnelProvider {
 
+    private static final String TAG = RelayTunnelProvider.class.getSimpleName();
+
     private static final int DELAY_BETWEEN_ATTEMPTS_MS = 5000;
 
     private final Object getCurrentTunnelLock = new Object(); // protects getCurrentTunnel()
@@ -77,6 +79,7 @@ public class RelayTunnelProvider {
             tunnel.connect();
             notifyConnected();
         } catch (IOException e) {
+            Logger.e(TAG, "Failed to connect tunnel", e);
             touchFailure();
             if (notifyDisconnectedOnError) {
                 notifyDisconnected();
@@ -87,6 +90,7 @@ public class RelayTunnelProvider {
 
     public synchronized void invalidateTunnel() {
         if (tunnel != null) {
+            Logger.i(TAG, "Invalidating tunnel");
             touchFailure();
             tunnel.close();
             tunnel = null;
